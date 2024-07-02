@@ -39,6 +39,62 @@ public:
     }
 };
 
+typedef char* (*encrypt_ptr_t)(const char*, int);
+typedef char* (*decrypt_ptr_t)(const char*, int);
+
+class CaesarCipher {
+private:
+    HINSTANCE handle;
+    encrypt_ptr_t encrypt_ptr;
+    decrypt_ptr_t decrypt_ptr;
+
+public:
+    bool loadLibrary() {
+        handle = LoadLibraryA("C:/Users/User/source/repos/caesarLib/caesar.dll");
+        DWORD err = GetLastError();
+        if (handle == nullptr || handle == INVALID_HANDLE_VALUE) {
+            cout << "Lib not found." << endl;
+            return false;
+        }
+
+        encrypt_ptr = (encrypt_ptr_t)GetProcAddress(handle, "encrypt");
+        decrypt_ptr = (decrypt_ptr_t)GetProcAddress(handle, "decrypt");
+
+        if (encrypt_ptr == nullptr || decrypt_ptr == nullptr) {
+            cout << "Functions not found." << endl;
+            FreeLibrary(handle);
+            handle = nullptr;
+            return false;
+        }
+
+        return true;
+    }
+    CaesarCipher() : handle(nullptr), encrypt_ptr(nullptr), decrypt_ptr(nullptr) {
+        if (!loadLibrary()) {
+            throw runtime_error("Failed to load Caesar cipher library.");
+        }
+    }
+
+    ~CaesarCipher() {
+        if (handle) {
+            FreeLibrary(handle);
+        }
+    }
+
+    char* encryptText(const char* message, int key) {
+        if (encrypt_ptr) {
+            return encrypt_ptr(message, key);
+        }
+        return nullptr;
+    }
+
+    char* decryptText(const char* message, int key) {
+        if (decrypt_ptr) {
+            return decrypt_ptr(message, key);
+        }
+        return nullptr;
+    }
+};
 
 class TextEditor {
 private:
@@ -49,6 +105,7 @@ private:
     int undoNum;
     int redoNum;
     int currentStateIndex;
+    CaesarCipher* cipher;
 
 
 public:
@@ -59,6 +116,7 @@ public:
         undoNum = -1;
         redoNum = -1;
         currentStateIndex = -1;
+        cipher = new CaesarCipher();
 
         for (int i = 0; i < 3; ++i) {
             states[i] = (char*)calloc(arraySize, sizeof(char));
@@ -71,7 +129,7 @@ public:
                 free(states[i]);
             }
         }
-
+        delete cipher;
     }
     void SaveState() {
         if (numStates == 3) {
@@ -466,12 +524,32 @@ public:
         }
         std::cout << std::endl;
     }
-   
+    void EncryptText(int key) {
+        char* encryptedText = cipher->encryptText(textObject->getText(), key);
+        if (encryptedText != nullptr) {
+            textObject->setText(encryptedText);
+            std::cout << "Text was sucsesfully encrypted. ";
+        }
+        else {
+            std::cout << "It was error.\n";
+        }
+    }
+    void DecryptText(int key) {
+        char* decryptedText = cipher->decryptText(textObject->getText(), key);
+        if (decryptedText != nullptr) {
+            textObject->setText(decryptedText);
+            std::cout << "Text was sucsesfully decrypted. " ;
+        }
+        else {
+            std::cout << "It was error.\n";
+        }
+    }
+
 };
 
 int main() {
     TextEditor editor;
-
+    CaesarCipher cipher();
 
     int command = 0;
     editor.SaveState();
@@ -551,8 +629,24 @@ int main() {
             editor.ReplaceInsert();
             editor.SaveState();
             break;
+        case 15: {
+            int key;
+            cout << "Enter encryption key: ";
+            cin >> key;
+            editor.EncryptText(key);
+            editor.SaveState();
+            break;
+        }
+        case 16: {
+            int key;
+            cout << "Enter decryption key: ";
+            cin >> key;
+            editor.DecryptText(key);
+            editor.SaveState();
+            break;
+        }
         case 17:
-            cout << "Chao!\n";
+            cout << "Exiting program. Goodbye!\n";
             break;
         default:
             cout << "Invalid command. Please enter a number between 1 and 17.\n";
