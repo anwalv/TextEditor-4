@@ -166,7 +166,7 @@ public:
         std::cout << "A new line has started!\n";
     }
     void WriteToFile() {
-        FILE* out_file = fopen("C:\\Users\\User\\CLionProjects\\untitled2\\my_text.txt", "w");
+        FILE* out_file = fopen("C:\\Users\\User\\source\\repos\\TextEditor - 4\\TextEditor - 4\\my_text.txt", "w");
         if (out_file == NULL) {
             std::cout << "Error! Could not open file.\n";
             return;
@@ -176,7 +176,7 @@ public:
         std::cout << "The data was successfully written to the file.\n";
     }
     void LoadFromFile() {
-        FILE* in_file = fopen("C:\\Users\\User\\CLionProjects\\untitled2\\my_text.txt", "r");
+        FILE* in_file = fopen("C:\\Users\\User\\source\\repos\\TextEditor - 4\\TextEditor - 4\\my_text.txt", "r");
         if (in_file == NULL) {
             std::cout << "Error! Could not open file.\n";
             return;
@@ -544,6 +544,51 @@ public:
             std::cout << "It was error.\n";
         }
     }
+    void EncryptFile(const char* inputFilename, const char* outputFilename, int key) {
+        FILE* in_file = fopen(inputFilename, "r");
+        FILE* out_file = fopen(outputFilename, "w");
+
+        if (in_file == NULL || out_file == NULL) {
+            cout << "Error! Could not open files.\n";
+            return;
+        }
+
+        const int chunkSize = 128;
+        char buffer[chunkSize];
+        size_t bytesRead;
+
+        while ((bytesRead = fread(buffer, sizeof(char), chunkSize, in_file)) > 0) {
+            char* encryptedChunk = cipher->encryptText(buffer, key);
+            fwrite(encryptedChunk, sizeof(char), bytesRead, out_file);
+        }
+
+        fclose(in_file);
+        fclose(out_file);
+        cout << "File encrypted successfully.\n";
+    }
+    void DecryptFile(const char* inputFilename, const char* outputFilename, int key) {
+        FILE* in_file = fopen(inputFilename, "rb");
+        FILE* out_file = fopen(outputFilename, "wb");
+
+        if (in_file == NULL || out_file == NULL) {
+            cout << "Error! Could not open files.\n";
+            return;
+        }
+
+        const int chunkSize = 128;
+        char buffer[chunkSize];
+        size_t bytesRead;
+
+        while ((bytesRead = fread(buffer, sizeof(char), chunkSize, in_file)) > 0) {
+            char* decryptedChunk = cipher->decryptText(buffer, key);
+            fwrite(decryptedChunk, sizeof(char), bytesRead, out_file);
+        }
+
+        fclose(in_file);
+        fclose(out_file);
+        cout << "File decrypted successfully.\n";
+    }
+
 
 };
 
@@ -630,20 +675,67 @@ int main() {
             editor.SaveState();
             break;
         case 15: {
-            int key;
-            cout << "Enter encryption key: ";
-            cin >> key;
-            editor.EncryptText(key);
-            editor.SaveState();
-            break;
+            char answ;
+            cout << "Do you want to encrypt text from file? (y/n)";
+            cin >> answ;
+            if (answ == 'y'){
+                int key;
+                string inputFile, outputFile;
+                cout << "Enter encryption key: ";
+                cin >> key;
+                std::cin.ignore();
+
+                cout << "Enter input file path: ";
+                getline(cin, inputFile);
+                
+
+                cout << "Enter output file path: ";
+                getline(cin, outputFile);
+
+                editor.EncryptFile(inputFile.c_str(), outputFile.c_str(), key);
+                break;
+            }
+
+            else {
+                int key;
+                cout << "Enter encryption key: ";
+                cin >> key;
+                editor.EncryptText(key);
+                editor.SaveState();
+                break;
+            }
         }
         case 16: {
-            int key;
-            cout << "Enter decryption key: ";
-            cin >> key;
-            editor.DecryptText(key);
-            editor.SaveState();
-            break;
+            char answ;
+            cout << "Do you want to decrypt text from file? (y/n)";
+            cin >> answ;
+            if (answ == 'y') {
+                int key;
+                string inputFile, outputFile;
+                cout << "Enter decryption key: ";
+                cin >> key;
+                std::cin.ignore();
+
+                cout << "Enter input file path: ";
+                getline(cin, inputFile);
+                
+
+                cout << "Enter output file path: ";
+                getline(cin, outputFile);
+                
+
+                editor.DecryptFile(inputFile.c_str(), outputFile.c_str(), key);
+                break;
+            }
+
+            else {
+                int key;
+                cout << "Enter encryption key: ";
+                cin >> key;
+                editor.DecryptText(key);
+                editor.SaveState();
+                break;
+            }
         }
         case 17:
             cout << "Exiting program. Goodbye!\n";
